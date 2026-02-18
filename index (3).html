@@ -1,0 +1,1978 @@
+<!doctype html>
+<html lang="en" class="h-full">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Task Mint - Login</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-analytics-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Outfit:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body,
+    #app-wrapper {
+      height: 100%;
+      width: 100%;
+    }
+
+    #app-wrapper {
+      overflow: auto;
+    }
+
+    .captcha-text {
+      font-family: 'Space Mono', monospace;
+      letter-spacing: 0.15em;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+      transform: skewX(-5deg);
+      user-select: none;
+    }
+
+    .captcha-box {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .captcha-box::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background:
+        repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(255, 255, 255, 0.03) 2px, rgba(255, 255, 255, 0.03) 4px),
+        repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255, 255, 255, 0.03) 2px, rgba(255, 255, 255, 0.03) 4px);
+      pointer-events: none;
+    }
+
+    .noise-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%' height='100%' filter='url(%23noise)' opacity='0.1'/%3E%3C/svg%3E");
+      pointer-events: none;
+    }
+
+    @keyframes pulse-glow {
+
+      0%,
+      100% {
+        box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
+      }
+
+      50% {
+        box-shadow: 0 0 40px rgba(0, 255, 136, 0.6);
+      }
+    }
+
+    .earning-pulse {
+      animation: pulse-glow 2s ease-in-out infinite;
+    }
+
+    @keyframes shake {
+
+      0%,
+      100% {
+        transform: translateX(0);
+      }
+
+      25% {
+        transform: translateX(-5px);
+      }
+
+      75% {
+        transform: translateX(5px);
+      }
+    }
+
+    .shake {
+      animation: shake 0.3s ease-in-out;
+    }
+
+    @keyframes coin-drop {
+      0% {
+        transform: translateY(-20px) scale(0);
+        opacity: 0;
+      }
+
+      50% {
+        transform: translateY(0) scale(1.2);
+        opacity: 1;
+      }
+
+      100% {
+        transform: translateY(10px) scale(1);
+        opacity: 0;
+      }
+    }
+
+    .coin-animation {
+      animation: coin-drop 0.6s ease-out forwards;
+    }
+
+    .strike-line {
+      position: absolute;
+      height: 2px;
+      background: rgba(255, 255, 255, 0.4);
+      transform-origin: left center;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .glass-card {
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    }
+
+    .hero-gradient {
+      background: linear-gradient(135deg, #00ff88 0%, #00d2ff 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .btn-glow {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-glow::after {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: rgba(255, 255, 255, 0.1);
+      transform: rotate(45deg);
+      transition: all 0.5s;
+      pointer-events: none;
+    }
+
+    .btn-glow:hover::after {
+      left: 120%;
+    }
+
+    @keyframes float {
+      0% {
+        transform: translateY(0px);
+      }
+
+      50% {
+        transform: translateY(-10px);
+      }
+
+      100% {
+        transform: translateY(0px);
+      }
+    }
+
+    .floating {
+      animation: float 4s ease-in-out infinite;
+    }
+
+    .feedback-message {
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    @keyframes slideInFromRight {
+      from {
+        opacity: 0;
+        transform: translateX(20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    @keyframes slideOutToLeft {
+      from {
+        opacity: 1;
+        transform: translateX(0);
+      }
+
+      to {
+        opacity: 0;
+        transform: translateX(-20px);
+      }
+    }
+
+    .page {
+      animation: slideInFromRight 0.4s ease-out;
+    }
+
+    .page.exit {
+      animation: slideOutToLeft 0.3s ease-in;
+    }
+
+    .captcha-tab {
+      transition: all 0.3s ease;
+    }
+
+    .captcha-tab.active {
+      border-bottom: 3px solid #00ff88;
+      color: #00ff88;
+    }
+
+    .image-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      justify-items: center;
+    }
+
+    .image-option {
+      cursor: pointer;
+      border-radius: 8px;
+      transition: all 0.2s;
+      border: 2px solid transparent;
+      background: linear-gradient(135deg, #2a2a4e 0%, #3a3a5e 100%);
+      padding: 0;
+      user-select: none;
+      overflow: hidden;
+      aspect-ratio: 1;
+      width: 80px;
+      height: 80px;
+    }
+
+    .image-option img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform 0.2s;
+    }
+
+    .image-option:hover img {
+      transform: scale(1.05);
+    }
+
+    .image-option.selected {
+      border-color: #00ff88;
+      background: rgba(0, 255, 136, 0.2);
+      box-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+    }
+
+    .annotation-grid {
+      display: grid;
+      grid-template-columns: repeat(1, 1fr);
+      gap: 10px;
+    }
+
+    .annotation-item {
+      background: linear-gradient(135deg, #2a2a4e 0%, #3a3a5e 100%);
+      border: 2px solid #666;
+      border-radius: 10px;
+      padding: 10px;
+      display: flex;
+      gap: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+      user-select: none;
+    }
+
+    .annotation-item:hover {
+      border-color: #00ff88;
+      transform: translateX(4px);
+      background: linear-gradient(135deg, #3a3a5e 0%, #4a4a6e 100%);
+    }
+
+    .annotation-item img {
+      width: 50px;
+      height: 50px;
+      object-fit: cover;
+      border-radius: 6px;
+      flex-shrink: 0;
+    }
+
+    .annotation-item-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .annotation-item-text {
+      color: #e0e0e0;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .annotation-item-desc {
+      color: #999;
+      font-size: 12px;
+    }
+
+    .annotation-item.selected {
+      border-color: #00ff88;
+      background: rgba(0, 255, 136, 0.2);
+      box-shadow: 0 0 15px rgba(0, 255, 136, 0.4);
+    }
+
+    .annotation-item.correct {
+      border-color: #00ff88;
+      background: rgba(0, 255, 136, 0.3);
+      box-shadow: 0 0 20px rgba(0, 255, 136, 0.6);
+    }
+
+    .annotation-item.wrong {
+      border-color: #ff4444;
+      background: rgba(255, 68, 68, 0.2);
+      box-shadow: 0 0 20px rgba(255, 68, 68, 0.4);
+    }
+
+    .verify-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      justify-items: center;
+    }
+
+    .verify-option {
+      cursor: pointer;
+      border-radius: 10px;
+      transition: all 0.2s;
+      border: 2px solid transparent;
+      background: linear-gradient(135deg, #2a2a4e 0%, #3a3a5e 100%);
+      padding: 12px 8px;
+      user-select: none;
+      text-align: center;
+      font-size: 28px;
+      width: 70px;
+      height: 70px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .verify-option:hover {
+      border-color: #00ff88;
+      transform: scale(1.05);
+    }
+
+    .verify-option.correct {
+      border-color: #00ff88;
+      background: rgba(0, 255, 136, 0.3);
+      box-shadow: 0 0 20px rgba(0, 255, 136, 0.6);
+    }
+
+    .verify-option.wrong {
+      border-color: #ff4444;
+      background: rgba(255, 68, 68, 0.2);
+      box-shadow: 0 0 20px rgba(255, 68, 68, 0.4);
+    }
+
+    .math-button-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-top: 20px;
+      justify-items: center;
+    }
+
+    .math-option {
+      cursor: pointer;
+      border-radius: 10px;
+      transition: all 0.2s;
+      border: 2px solid transparent;
+      background: linear-gradient(135deg, #2a2a4e 0%, #3a3a5e 100%);
+      padding: 12px;
+      user-select: none;
+      text-align: center;
+      font-size: 18px;
+      font-weight: bold;
+      color: #e0e0e0;
+      width: 70px;
+      height: 70px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .math-option:hover {
+      border-color: #00ff88;
+      transform: scale(1.05);
+      background: linear-gradient(135deg, #3a3a5e 0%, #4a4a6e 100%);
+    }
+
+    .math-option.correct {
+      border-color: #00ff88;
+      background: rgba(0, 255, 136, 0.3);
+      box-shadow: 0 0 20px rgba(0, 255, 136, 0.6);
+    }
+
+    .math-option.wrong {
+      border-color: #ff4444;
+      background: rgba(255, 68, 68, 0.2);
+      box-shadow: 0 0 20px rgba(255, 68, 68, 0.4);
+    }
+
+    .timer-warning {
+      color: #ff6b6b;
+    }
+
+    @keyframes timer-pulse {
+
+      0%,
+      100% {
+        transform: scale(1);
+      }
+
+      50% {
+        transform: scale(1.1);
+      }
+    }
+
+    .timer-critical {
+      animation: timer-pulse 0.5s ease-in-out infinite;
+    }
+
+    @keyframes bounce-in {
+      0% {
+        opacity: 0;
+        transform: scale(0.8);
+      }
+
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    .bounce-in {
+      animation: bounce-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .page-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100%;
+      padding: 20px 0;
+    }
+
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .withdraw-success {
+      animation: slideDown 0.4s ease-out;
+      color: #00ff88;
+    }
+
+    /* Mobile Responsive Adjustments */
+    @media (max-width: 640px) {
+      .auth-form {
+        padding: 24px 20px;
+        border-radius: 12px;
+        border-width: 1px;
+      }
+
+      .form-group {
+        margin-bottom: 16px;
+      }
+
+      .auth-button,
+      .auth-button-secondary {
+        padding: 12px 16px;
+        font-size: 14px;
+      }
+
+      .page-container {
+        align-items: flex-start;
+        padding-top: 40px;
+        padding-bottom: 40px;
+      }
+
+      .captcha-box {
+        padding: 24px 16px !important;
+      }
+
+      .math-option,
+      .verify-option,
+      .image-option {
+        width: 60px !important;
+        height: 60px !important;
+        font-size: 20px !important;
+      }
+
+      .math-button-grid,
+      .verify-grid,
+      .image-grid {
+        gap: 8px !important;
+      }
+
+      .text-5xl {
+        font-size: 2.5rem !important;
+      }
+
+      .text-3xl {
+        font-size: 1.5rem !important;
+      }
+
+      .text-xl {
+        font-size: 1rem !important;
+      }
+
+      #game-page {
+        padding: 16px 12px !important;
+      }
+
+      .grid-cols-3 {
+        gap: 8px !important;
+      }
+
+      .profile-modal {
+        width: 90% !important;
+        padding: 20px !important;
+      }
+
+      .modal-content {
+        padding: 24px 16px !important;
+        width: 95%;
+      }
+    }
+
+    .puzzle-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .puzzle-piece {
+      cursor: move;
+      user-select: none;
+      border-radius: 4px;
+      background: transparent;
+      border: 1px solid #666;
+      padding: 0;
+      transition: all 0.2s;
+      touch-action: none;
+      aspect-ratio: 1/1;
+      width: 100%;
+      overflow: hidden;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    }
+
+    .puzzle-piece img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 8px;
+      display: block;
+    }
+
+    .puzzle-piece:hover {
+      border-color: #00ff88;
+      transform: scale(1.05);
+    }
+
+    .puzzle-piece.correct {
+      border-color: #00ff88;
+      background: rgba(0, 255, 136, 0.3);
+      box-shadow: 0 0 20px rgba(0, 255, 136, 0.6);
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+
+    .puzzle-slot {
+      background: linear-gradient(135deg, #1a1a2e 0%, #2a2a4e 100%);
+      border: 2px dashed #666;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100px;
+      transition: all 0.2s;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .puzzle-slot img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 8px;
+      display: block;
+    }
+
+    .puzzle-slot.filled {
+      border-color: #00ff88;
+      background: rgba(0, 255, 136, 0.1);
+      border-style: solid;
+    }
+
+    .puzzle-slot.filled::after {
+      content: '✓';
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: #00ff88;
+      color: #0a0a0f;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 14px;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      overflow-y: auto;
+    }
+
+    .modal-backdrop.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      border: 2px solid #00ff88;
+      border-radius: 16px;
+      padding: 32px;
+      text-align: center;
+      max-width: 400px;
+      box-shadow: 0 0 40px rgba(0, 255, 136, 0.3);
+      margin: auto;
+      position: relative;
+    }
+
+    .modal-close-btn {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 22px;
+      height: 22px;
+      background: rgba(0, 255, 136, 0.2);
+      border: 1.5px solid #00ff88;
+      border-radius: 50%;
+      color: #00ff88;
+      font-size: 13px;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      font-family: 'Outfit', sans-serif;
+    }
+
+    .modal-close-btn:hover {
+      background: rgba(0, 255, 136, 0.3);
+      transform: scale(1.1);
+    }
+
+    @keyframes slideInDown {
+      from {
+        opacity: 0;
+        transform: translateY(-30px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .modal-content {
+      animation: slideInDown 0.4s ease-out;
+    }
+
+    .profile-modal {
+      max-width: 350px;
+      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .profile-modal.expanded {
+      max-width: 500px;
+      max-height: 85vh;
+      overflow-y: auto;
+    }
+
+    .profile-stat {
+      margin: 16px 0;
+      padding: 12px;
+      background: rgba(0, 255, 136, 0.1);
+      border-radius: 8px;
+      border-left: 3px solid #00ff88;
+      text-align: center;
+    }
+
+    .profile-stat-editable {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    .edit-profile-icon {
+      cursor: pointer;
+      font-size: 16px;
+      color: #00ff88;
+      transition: all 0.2s;
+    }
+
+    .edit-profile-icon:hover {
+      transform: scale(1.2);
+    }
+
+    .edit-profile-form {
+      background: rgba(0, 0, 0, 0.3);
+      border: 2px solid rgba(0, 255, 136, 0.2);
+      border-radius: 12px;
+      padding: 16px;
+      margin: 12px 0;
+    }
+
+    .edit-profile-form input {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.3);
+      border: 2px solid rgba(0, 255, 136, 0.2);
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: #e0e0e0;
+      font-size: 14px;
+      margin-bottom: 12px;
+      font-family: 'Outfit', sans-serif;
+      transition: all 0.3s;
+      box-sizing: border-box;
+    }
+
+    .edit-profile-form input:focus {
+      outline: none;
+      border-color: #00ff88;
+      box-shadow: 0 0 15px rgba(0, 255, 136, 0.2);
+      background: rgba(0, 0, 0, 0.5);
+    }
+
+    .edit-profile-buttons {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .edit-profile-buttons button {
+      flex: 1;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 13px;
+      font-family: 'Outfit', sans-serif;
+    }
+
+    .edit-profile-buttons button.save {
+      background: #00ff88;
+      color: #0a0a0f;
+    }
+
+    .edit-profile-buttons button.save:hover {
+      background: #00cc6a;
+    }
+
+    .edit-profile-buttons button.cancel {
+      background: #666;
+      color: #e0e0e0;
+    }
+
+    .edit-profile-buttons button.cancel:hover {
+      background: #777;
+    }
+
+    .referral-section {
+      background: linear-gradient(135deg, rgba(0, 255, 136, 0.1) 0%, rgba(0, 255, 136, 0.05) 100%);
+      border: 2px solid rgba(0, 255, 136, 0.3);
+      border-radius: 12px;
+      padding: 20px;
+      margin: 16px 0;
+      text-align: center;
+    }
+
+    .referral-code {
+      background: rgba(0, 0, 0, 0.3);
+      border: 2px dashed #00ff88;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin: 12px 0;
+      font-family: 'Space Mono', monospace;
+      font-size: 18px;
+      font-weight: bold;
+      color: #00ff88;
+      text-align: center;
+      user-select: all;
+      word-break: break-all;
+    }
+
+    .copy-referral-btn {
+      width: 100%;
+      margin-top: 12px;
+      padding: 10px 16px;
+      background: rgba(0, 255, 136, 0.2);
+      border: 2px solid #00ff88;
+      color: #00ff88;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-family: 'Outfit', sans-serif;
+    }
+
+    .copy-referral-btn:hover {
+      background: rgba(0, 255, 136, 0.3);
+      transform: scale(1.02);
+    }
+
+    .copy-referral-btn.copied {
+      background: rgba(0, 255, 136, 0.4);
+      border-color: #00cc6a;
+      color: #00cc6a;
+    }
+
+    .referral-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin: 16px 0;
+    }
+
+    .referral-stat-item {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(0, 255, 136, 0.2);
+      border-radius: 8px;
+      padding: 12px;
+      text-align: center;
+    }
+
+    .referral-stat-label {
+      font-size: 12px;
+      color: #999;
+      margin-bottom: 6px;
+    }
+
+    .referral-stat-value {
+      font-size: 20px;
+      font-weight: bold;
+      color: #00ff88;
+      font-family: 'Space Mono', monospace;
+    }
+
+    .referral-earnings {
+      background: linear-gradient(135deg, rgba(0, 255, 136, 0.15) 0%, rgba(0, 255, 136, 0.08) 100%);
+      border-left: 4px solid #00ff88;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin: 12px 0;
+      text-align: center;
+    }
+
+    .referral-earnings-label {
+      color: #999;
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+
+    .referral-earnings-value {
+      font-size: 18px;
+      font-weight: bold;
+      color: #00ff88;
+      font-family: 'Space Mono', monospace;
+    }
+
+    .withdraw-methods-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+      gap: 12px;
+      margin: 20px 0;
+    }
+
+    .method-option {
+      background: linear-gradient(135deg, #2a2a4e 0%, #3a3a5e 100%);
+      border: 2px solid #666;
+      border-radius: 12px;
+      padding: 16px 12px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      user-select: none;
+    }
+
+    .method-option:hover {
+      border-color: #00ff88;
+      transform: scale(1.05);
+      background: linear-gradient(135deg, #3a3a5e 0%, #4a4a6e 100%);
+    }
+
+    .method-option.selected {
+      border-color: #00ff88;
+      background: rgba(0, 255, 136, 0.2);
+      box-shadow: 0 0 20px rgba(0, 255, 136, 0.4);
+    }
+
+    .method-icon {
+      font-size: 28px;
+      margin-bottom: 8px;
+    }
+
+    .method-name {
+      font-size: 12px;
+      color: #e0e0e0;
+      font-weight: 600;
+    }
+
+    .withdrawal-history-container {
+      max-height: 400px;
+      overflow-y: auto;
+      margin: 12px 0;
+    }
+
+    .withdrawal-item {
+      background: rgba(0, 0, 0, 0.3);
+      border-left: 4px solid #00ff88;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .withdrawal-item-info {
+      flex: 1;
+    }
+
+    .withdrawal-item-method {
+      font-size: 12px;
+      color: #999;
+      margin-bottom: 4px;
+    }
+
+    .withdrawal-item-amount {
+      font-weight: bold;
+      color: #00ff88;
+      font-family: 'Space Mono', monospace;
+    }
+
+    .withdrawal-item-date {
+      font-size: 10px;
+      color: #777;
+      margin-top: 4px;
+    }
+
+    .withdrawal-item-status {
+      background: rgba(0, 255, 136, 0.2);
+      color: #00ff88;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .withdrawal-item-status-pending {
+      background: rgba(245, 158, 11, 0.2);
+      color: #f59e0b;
+    }
+
+    .empty-history {
+      text-align: center;
+      padding: 24px 12px;
+      color: #666;
+      font-size: 13px;
+    }
+
+    .auth-form {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      border: 2px solid rgba(0, 255, 136, 0.3);
+      border-radius: 16px;
+      padding: 40px 32px;
+      max-width: 450px;
+      width: 100%;
+    }
+
+    .form-group {
+      margin-bottom: 24px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      color: #e0e0e0;
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 12px 16px;
+      background: rgba(0, 0, 0, 0.3);
+      border: 2px solid rgba(0, 255, 136, 0.2);
+      border-radius: 8px;
+      color: #e0e0e0;
+      font-size: 16px;
+      font-family: 'Outfit', sans-serif;
+      transition: all 0.3s;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: #00ff88;
+      box-shadow: 0 0 20px rgba(0, 255, 136, 0.2);
+      background: rgba(0, 0, 0, 0.5);
+    }
+
+    .form-group input::placeholder {
+      color: #666;
+    }
+
+    .form-error {
+      color: #ff4444;
+      font-size: 13px;
+      margin-top: 6px;
+      display: none;
+    }
+
+    .form-error.show {
+      display: block;
+    }
+
+    .auth-button {
+      width: 100%;
+      padding: 14px 24px;
+      background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%);
+      color: #0a0a0f;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      font-family: 'Outfit', sans-serif;
+      cursor: pointer;
+      transition: all 0.3s;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .auth-button:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(0, 255, 136, 0.3);
+    }
+
+    .auth-button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .auth-button-secondary {
+      width: 100%;
+      padding: 14px 24px;
+      background: transparent;
+      color: #00ff88;
+      border: 2px solid #00ff88;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      font-family: 'Outfit', sans-serif;
+      cursor: pointer;
+      transition: all 0.3s;
+      letter-spacing: 0.5px;
+      margin-top: 12px;
+    }
+
+    .auth-button-secondary:hover {
+      background: rgba(0, 255, 136, 0.15);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0, 255, 136, 0.2);
+    }
+
+    .auth-buttons-row {
+      display: flex;
+      gap: 12px;
+      margin-top: 8px;
+      width: 100%;
+    }
+
+    .auth-buttons-row .auth-button,
+    .auth-buttons-row .auth-button-secondary {
+      flex: 1;
+      margin-top: 0;
+    }
+
+    .auth-toggle {
+      margin-top: 24px;
+      text-align: center;
+      color: #999;
+      font-size: 14px;
+    }
+
+    .auth-toggle a {
+      color: #00ff88;
+      cursor: pointer;
+      font-weight: 600;
+      transition: color 0.3s;
+    }
+
+    .auth-toggle a:hover {
+      color: #00cc6a;
+    }
+
+    .error-message {
+      background: rgba(255, 68, 68, 0.1);
+      border: 1px solid #ff4444;
+      color: #ff8888;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      font-size: 13px;
+      display: none;
+    }
+
+    .error-message.show {
+      display: block;
+    }
+
+    .success-message {
+      background: rgba(0, 255, 136, 0.1);
+      border: 1px solid #00ff88;
+      color: #00ff88;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      font-size: 13px;
+      display: none;
+    }
+
+    .success-message.show {
+      display: block;
+    }
+
+    .loading-spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 3px solid rgba(0, 255, 136, 0.3);
+      border-top-color: #00ff88;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-right: 8px;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .info-section-centered {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .info-section-list {
+      display: inline-block;
+      text-align: left;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+  </style>
+</head>
+
+<body class="h-full">
+  <div id="app-wrapper" class="h-full w-full overflow-auto"
+    style="background: linear-gradient(180deg, #0a0a0f 0%, #1a1a2e 100%);">
+    <div class="h-full w-full">
+      <div class="max-w-2xl mx-auto h-full">
+        <!-- WELCOME PAGE -->
+        <div id="welcome-page" class="page page-container">
+          <div class="w-full px-4 text-center">
+            <div class="mb-8 relative flex justify-center">
+              <div class="absolute inset-0 bg-emerald-500 blur-[100px] opacity-20 rounded-full animate-pulse"></div>
+              <div class="relative text-8xl mb-6 floating">💎</div>
+            </div>
+            <h1 class="text-5xl md:text-7xl font-extrabold mb-6 hero-gradient tracking-tight"
+              style="font-family: 'Outfit', sans-serif;">Task Mint</h1>
+            <p class="text-lg md:text-2xl text-gray-400 mb-10 max-w-lg mx-auto leading-relaxed"
+              style="font-family: 'Outfit', sans-serif;">
+              The next generation of <span class="text-white font-bold">AI Micro-tasking</span>.
+              Solve simple tasks and get paid instantly.
+            </p>
+
+            <div class="grid grid-cols-2 gap-4 md:gap-6 max-w-xl mx-auto mb-12">
+              <div class="glass-card p-4 md:p-6 rounded-2xl transition-all hover:scale-105">
+                <div class="text-3xl mb-3">⚡</div>
+                <div class="text-sm md:text-base font-bold text-white mb-1">Instant Pay</div>
+                <div class="text-xs text-gray-500">Real-time withdrawal</div>
+              </div>
+              <div class="glass-card p-4 md:p-6 rounded-2xl transition-all hover:scale-105">
+                <div class="text-3xl mb-3">🛡️</div>
+                <div class="text-sm md:text-base font-bold text-white mb-1">Encrypted</div>
+                <div class="text-xs text-gray-500">Secure blockchain logs</div>
+              </div>
+              <div class="glass-card p-4 md:p-6 rounded-2xl transition-all hover:scale-105">
+                <div class="text-3xl mb-3">🌐</div>
+                <div class="text-sm md:text-base font-bold text-white mb-1">Global</div>
+                <div class="text-xs text-gray-500">Work from anywhere</div>
+              </div>
+              <div class="glass-card p-4 md:p-6 rounded-2xl transition-all hover:scale-105">
+                <div class="text-3xl mb-3">🎯</div>
+                <div class="text-sm md:text-base font-bold text-white mb-1">Precision</div>
+                <div class="text-xs text-gray-500">High accuracy rewards</div>
+              </div>
+            </div>
+
+            <button id="get-started-btn"
+              class="w-full max-w-md px-10 py-5 rounded-2xl font-black text-xl md:text-2xl shadow-2xl shadow-emerald-500/30 hover:shadow-emerald-500/50 transition-all transform hover:-translate-y-2 btn-glow"
+              style="font-family: 'Outfit', sans-serif; background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%); color: #0a0a0f;">
+              GET STARTED →
+            </button>
+
+            <div class="mt-12 flex items-center justify-center gap-4">
+              <div class="flex -space-x-3">
+                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
+                  class="w-10 h-10 rounded-full border-2 border-slate-900" alt="user">
+                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Aneka"
+                  class="w-10 h-10 rounded-full border-2 border-slate-900" alt="user">
+                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Jasper"
+                  class="w-10 h-10 rounded-full border-2 border-slate-900" alt="user">
+              </div>
+              <p class="text-gray-500 text-sm font-medium">Join <span class="text-emerald-400 font-bold">12k+</span>
+                active earners</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- LOGIN PAGE -->
+        <div id="login-page" class="page page-container hidden">
+          <div class="w-full px-4">
+            <div class="auth-form mx-auto">
+              <div class="text-center mb-6 md:mb-8">
+                <div class="text-4xl md:text-5xl mb-4">💰</div>
+                <h1 class="text-2xl md:text-3xl font-bold text-emerald-400 mb-1"
+                  style="font-family: 'Outfit', sans-serif;">Task
+                  Mint</h1>
+                <p class="text-emerald-300 text-xs md:text-sm mb-3 md:mb-4" style="font-family: 'Outfit', sans-serif;">
+                  Build Our AI & Get
+                  Payouts</p>
+                <p class="text-gray-400 text-sm md:text-base" style="font-family: 'Outfit', sans-serif;">Sign in to your
+                  account</p>
+              </div>
+              <div id="login-error" class="error-message" style="font-family: 'Outfit', sans-serif;"></div>
+              <form id="login-form">
+                <div class="form-group">
+                  <label for="login-email" style="font-family: 'Outfit', sans-serif;">Email Address</label>
+                  <input type="email" id="login-email" placeholder="you@example.com" value="demo@example.com" required>
+                  <div class="form-error" style="font-family: 'Outfit', sans-serif;">Please enter a valid email</div>
+                </div>
+                <div class="form-group">
+                  <label for="login-password" style="font-family: 'Outfit', sans-serif;">Password</label>
+                  <input type="password" id="login-password" placeholder="Enter your password" value="123456" required>
+                  <div class="form-error" style="font-family: 'Outfit', sans-serif;">Password is required</div>
+                </div>
+                <div class="auth-buttons-row">
+                  <button type="submit" class="auth-button" id="login-submit"
+                    style="font-family: 'Outfit', sans-serif;">Sign In</button>
+                  <button type="button" class="auth-button-secondary" id="to-register-btn"
+                    style="font-family: 'Outfit', sans-serif;">Create account</button>
+                </div>
+              </form>
+              <div class="auth-toggle" style="font-family: 'Outfit', sans-serif;">
+                New here? <a id="to-register" href="#">Create account</a> · Already have an account? Use <strong>Sign
+                  In</strong> above.
+              </div>
+              <div class="mt-6 pt-6 border-t border-gray-700">
+                <p class="text-xs text-gray-500 mb-4" style="font-family: 'Outfit', sans-serif;">⚠️ Demo Mode: This is a
+                  practice simulation. Use any email/password to login.</p>
+                <button id="demo-login-btn"
+                  class="w-full px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-gray-300 text-sm transition-all"
+                  style="font-family: 'Outfit', sans-serif;">Try Demo (demo@example.com)</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- REGISTER PAGE -->
+        <div id="register-page" class="page page-container hidden">
+          <div class="w-full px-4">
+            <div class="auth-form mx-auto">
+              <div class="text-center mb-6 md:mb-8">
+                <div class="text-4xl md:text-5xl mb-4">🚀</div>
+                <h1 class="text-2xl md:text-3xl font-bold text-emerald-400 mb-2"
+                  style="font-family: 'Outfit', sans-serif;">Create
+                  Account</h1>
+                <p class="text-gray-400 text-sm md:text-base" style="font-family: 'Outfit', sans-serif;">Join Task Mint
+                  and start earning</p>
+              </div>
+              <div id="register-error" class="error-message" style="font-family: 'Outfit', sans-serif;"></div>
+              <div id="register-success" class="success-message" style="font-family: 'Outfit', sans-serif;"></div>
+              <form id="register-form">
+                <div class="form-group">
+                  <label for="register-username" style="font-family: 'Outfit', sans-serif;">Username</label>
+                  <input type="text" id="register-username" placeholder="Choose a username" required minlength="3"
+                    maxlength="20">
+                  <div class="form-error" style="font-family: 'Outfit', sans-serif;">Username must be 3-20 characters
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label for="register-email" style="font-family: 'Outfit', sans-serif;">Email Address</label>
+                  <input type="email" id="register-email" placeholder="you@example.com" required>
+                  <div class="form-error" style="font-family: 'Outfit', sans-serif;">Please enter a valid email</div>
+                </div>
+                <div class="form-group">
+                  <label for="register-password" style="font-family: 'Outfit', sans-serif;">Password</label>
+                  <input type="password" id="register-password" placeholder="Create a strong password" required
+                    minlength="6">
+                  <div class="form-error" style="font-family: 'Outfit', sans-serif;">Password must be at least 6
+                    characters</div>
+                </div>
+                <div class="form-group">
+                  <label for="register-password-confirm" style="font-family: 'Outfit', sans-serif;">Confirm
+                    Password</label>
+                  <input type="password" id="register-password-confirm" placeholder="Confirm your password" required>
+                  <div class="form-error" style="font-family: 'Outfit', sans-serif;">Passwords do not match</div>
+                </div>
+                <div class="form-group">
+                  <label for="register-referral" style="font-family: 'Outfit', sans-serif;">Referral Code
+                    (Optional)</label>
+                  <input type="text" id="register-referral" placeholder="Enter referral code if you have one">
+                  <div class="form-error" style="font-family: 'Outfit', sans-serif;">Invalid referral code</div>
+                </div>
+                <div class="auth-buttons-row">
+                  <button type="submit" class="auth-button" id="register-submit"
+                    style="font-family: 'Outfit', sans-serif;">Create Account</button>
+                  <button type="button" class="auth-button-secondary" id="to-login-btn"
+                    style="font-family: 'Outfit', sans-serif;">Sign in</button>
+                </div>
+              </form>
+              <div class="auth-toggle" style="font-family: 'Outfit', sans-serif;">
+                Already have an account? <a id="to-login">Sign in</a>
+              </div>
+              <div class="mt-6 pt-6 border-t border-gray-700">
+                <p class="text-xs text-gray-500" style="font-family: 'Outfit', sans-serif;">⚠️ Demo Mode: Account data
+                  is stored locally only.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- MAIN GAME PAGE -->
+        <div id="game-page" class="page hidden" style="padding: 32px 16px;">
+          <header class="text-center mb-8 flex items-center justify-between">
+            <div class="flex flex-col gap-1 items-start">
+              <button id="profile-btn" class="text-gray-400 hover:text-emerald-400 transition-colors"
+                style="font-family: 'Outfit', sans-serif; font-size: 14px;">👤 Profile</button>
+              <button id="admin-panel-btn" class="text-gray-400 hover:text-red-400 transition-colors hidden"
+                style="font-family: 'Outfit', sans-serif; font-size: 14px;">🛠 Admin</button>
+            </div>
+            <div class="flex-1 text-center">
+              <div class="inline-flex items-center gap-3">
+                <div class="text-2xl">💰</div>
+                <h1 id="site-title" class="text-3xl font-bold"
+                  style="font-family: 'Outfit', sans-serif; color: #00ff88;">Task Mint</h1>
+              </div>
+            </div>
+            <button id="logout-btn" class="text-gray-400 hover:text-emerald-400 transition-colors"
+              style="font-family: 'Outfit', sans-serif; font-size: 14px;">Logout</button>
+          </header>
+          <p id="user-greeting" class="text-center text-gray-400 mb-8" style="font-family: 'Outfit', sans-serif;">
+            Welcome back, <span id="current-username" style="color: #00ff88; font-weight: bold;">User</span>!</p>
+
+          <!-- Stats Dashboard -->
+          <div class="grid grid-cols-3 gap-4 mb-8">
+            <div
+              class="bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-xl p-4 border border-gray-700/50 text-center">
+              <p class="text-gray-400 text-sm mb-1" style="font-family: 'Outfit', sans-serif;">Total Solved</p>
+              <p id="stat-solved" class="text-2xl font-bold text-white" style="font-family: 'Space Mono', monospace;">0
+              </p>
+            </div>
+            <div
+              class="bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-xl p-4 border border-gray-700/50 text-center">
+              <p class="text-gray-400 text-sm mb-1" style="font-family: 'Outfit', sans-serif;">Accuracy</p>
+              <p id="stat-accuracy" class="text-2xl font-bold text-white" style="font-family: 'Space Mono', monospace;">
+                100%</p>
+            </div>
+            <div
+              class="bg-gradient-to-br from-emerald-900/30 to-emerald-800/20 rounded-xl p-4 border border-emerald-500/30 text-center earning-pulse">
+              <p id="earnings-label" class="text-emerald-400 text-sm mb-1" style="font-family: 'Outfit', sans-serif;">
+                Total Earnings</p>
+              <p id="stat-earnings" class="text-2xl font-bold text-emerald-400"
+                style="font-family: 'Space Mono', monospace;">$0.00</p>
+            </div>
+          </div>
+
+          <!-- Withdraw Section -->
+          <div class="bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-xl p-6 border border-gray-700/50 mb-8">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <p class="text-gray-400 text-sm mb-1" style="font-family: 'Outfit', sans-serif;">Available to Withdraw
+                </p>
+                <p id="withdraw-amount" class="text-2xl font-bold text-emerald-400"
+                  style="font-family: 'Space Mono', monospace;">$0.00</p>
+                <p class="text-gray-500 text-xs mt-2" style="font-family: 'Outfit', sans-serif;">Minimum: $50.00</p>
+              </div>
+              <div class="flex gap-2">
+                <button id="withdraw-btn"
+                  class="px-6 py-3 rounded-xl font-semibold transition-all transform disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95"
+                  style="font-family: 'Outfit', sans-serif; background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%); color: #0a0a0f;"
+                  disabled>Withdraw</button>
+                <button id="history-btn"
+                  class="px-6 py-3 rounded-xl font-semibold transition-all transform hover:scale-105 active:scale-95 bg-gray-700 hover:bg-gray-600 text-gray-300"
+                  style="font-family: 'Outfit', sans-serif;">History</button>
+              </div>
+            </div>
+            <div id="withdraw-message" class="text-sm text-gray-400" style="font-family: 'Outfit', sans-serif;"></div>
+            <div id="recent-withdrawal-info"></div>
+          </div>
+
+          <!-- CAPTCHA Type Tabs -->
+          <div class="flex gap-2 mb-6 overflow-x-auto pb-2 border-b border-gray-700">
+            <button class="captcha-tab active px-4 py-2 text-gray-400 whitespace-nowrap" data-type="text"
+              style="font-family: 'Outfit', sans-serif;">📝 Text</button>
+            <button class="captcha-tab px-4 py-2 text-gray-400 whitespace-nowrap" data-type="image"
+              style="font-family: 'Outfit', sans-serif;">🖼️ Image</button>
+            <button class="captcha-tab px-4 py-2 text-gray-400 whitespace-nowrap" data-type="annotation"
+              style="font-family: 'Outfit', sans-serif;">📌 Annotate</button>
+            <button class="captcha-tab px-4 py-2 text-gray-400 whitespace-nowrap" data-type="math"
+              style="font-family: 'Outfit', sans-serif;">🔢 Math</button>
+            <button class="captcha-tab px-4 py-2 text-gray-400 whitespace-nowrap" data-type="verify"
+              style="font-family: 'Outfit', sans-serif;">✓ Verify</button>
+            <button class="captcha-tab px-4 py-2 text-gray-400 whitespace-nowrap" data-type="puzzle"
+              style="font-family: 'Outfit', sans-serif;">🧩 Puzzle</button>
+          </div>
+
+          <!-- TEXT CAPTCHA Section -->
+          <div id="text-section" class="captcha-section mb-6">
+            <div class="captcha-box rounded-2xl p-8 mb-6 relative">
+              <div class="noise-overlay"></div>
+              <div class="strike-line" style="top: 30%; left: 10%; width: 80%; transform: rotate(2deg);"></div>
+              <div class="strike-line" style="top: 70%; left: 5%; width: 90%; transform: rotate(-1deg);"></div>
+              <div class="absolute top-4 left-4 text-center">
+                <p class="text-gray-400 text-xs mb-1" style="font-family: 'Outfit', sans-serif;">Time Left</p>
+                <p id="text-timer" class="text-2xl font-bold text-emerald-400"
+                  style="font-family: 'Space Mono', monospace;">40s</p>
+              </div>
+              <div id="text-display" class="captcha-text text-4xl md:text-5xl text-center py-8 relative z-10"
+                style="color: #e0e0e0;">READY?</div>
+              <div id="text-feedback" class="text-center mt-4 text-lg font-semibold feedback-message"
+                style="height: 28px;"></div>
+              <div id="coin-container" class="absolute top-4 right-4 text-2xl"></div>
+            </div>
+            <div class="mb-6">
+              <label for="text-input" class="sr-only">Type the CAPTCHA text</label>
+              <input type="text" id="text-input" placeholder="Type the text above..." autocomplete="off"
+                class="w-full bg-gray-800/80 border-2 border-gray-600 rounded-xl px-6 py-4 text-xl text-white text-center focus:outline-none focus:border-emerald-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                style="font-family: 'Space Mono', monospace;" disabled>
+            </div>
+            <div class="flex gap-4">
+              <button id="text-submit"
+                class="flex-1 px-6 py-3 rounded-xl font-semibold text-lg transition-all disabled:opacity-50"
+                style="font-family: 'Outfit', sans-serif; background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%); color: #0a0a0f;"
+                disabled>Submit Answer</button>
+            </div>
+          </div>
+
+          <!-- IMAGE CAPTCHA Section -->
+          <div id="image-section" class="captcha-section mb-6 hidden">
+            <div class="captcha-box rounded-2xl p-8 mb-6 relative">
+              <div class="noise-overlay"></div>
+              <div class="absolute top-4 left-4 text-center">
+                <p class="text-gray-400 text-xs mb-1" style="font-family: 'Outfit', sans-serif;">Time Left</p>
+                <p id="image-timer" class="text-2xl font-bold text-emerald-400"
+                  style="font-family: 'Space Mono', monospace;">40s</p>
+              </div>
+              <p class="text-center text-white mb-6 font-semibold text-lg" style="font-family: 'Outfit', sans-serif;">
+                Click all images with <span id="image-prompt" style="color: #00ff88;">dogs</span></p>
+              <div class="image-grid" id="image-grid"></div>
+              <div id="image-feedback" class="text-center mt-4 text-lg font-semibold feedback-message"
+                style="height: 28px;"></div>
+              <div id="image-coin-container" class="absolute top-4 right-4 text-2xl"></div>
+            </div>
+            <div class="flex gap-4">
+              <button id="image-submit"
+                class="flex-1 px-6 py-3 rounded-xl font-semibold text-lg transition-all disabled:opacity-50"
+                style="font-family: 'Outfit', sans-serif; background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%); color: #0a0a0f;"
+                disabled>Submit Selection</button>
+            </div>
+          </div>
+
+          <!-- ANNOTATION CAPTCHA Section -->
+          <div id="annotation-section" class="captcha-section mb-6 hidden">
+            <div class="captcha-box rounded-2xl p-8 mb-6 relative">
+              <div class="noise-overlay"></div>
+              <div class="absolute top-4 left-4 text-center">
+                <p class="text-gray-400 text-xs mb-1" style="font-family: 'Outfit', sans-serif;">Time Left</p>
+                <p id="annotation-timer" class="text-2xl font-bold text-emerald-400"
+                  style="font-family: 'Space Mono', monospace;">40s</p>
+              </div>
+              <p class="text-center text-white mb-4 font-semibold text-lg" style="font-family: 'Outfit', sans-serif;">
+                Select the image that matches: <span id="annotation-prompt" style="color: #00ff88;">mountain</span></p>
+              <div class="annotation-grid" id="annotation-grid"></div>
+              <div id="annotation-feedback" class="text-center mt-4 text-lg font-semibold feedback-message"
+                style="height: 28px;"></div>
+              <div id="annotation-coin-container" class="absolute top-4 right-4 text-2xl"></div>
+            </div>
+          </div>
+
+          <!-- MATH CAPTCHA Section -->
+          <div id="math-section" class="captcha-section mb-6 hidden">
+            <div class="captcha-box rounded-2xl p-8 mb-6 relative">
+              <div class="noise-overlay"></div>
+              <div class="absolute top-4 left-4 text-center">
+                <p class="text-gray-400 text-xs mb-1" style="font-family: 'Outfit', sans-serif;">Time Left</p>
+                <p id="math-timer" class="text-2xl font-bold text-emerald-400"
+                  style="font-family: 'Space Mono', monospace;">40s</p>
+              </div>
+              <p class="text-center text-gray-300 mb-4 font-semibold" style="font-family: 'Outfit', sans-serif;">Solve
+                the equation:</p>
+              <div id="math-display" class="captcha-text text-5xl text-center py-6 relative z-10"
+                style="color: #e0e0e0;">2 + 2 = ?</div>
+              <div id="math-feedback" class="text-center mt-4 text-lg font-semibold feedback-message"
+                style="height: 28px;"></div>
+              <div id="math-coin-container" class="absolute top-4 right-4 text-2xl"></div>
+              <div class="math-button-grid" id="math-grid"></div>
+            </div>
+          </div>
+
+          <!-- VERIFY CAPTCHA Section -->
+          <div id="verify-section" class="captcha-section mb-6 hidden">
+            <div class="captcha-box rounded-2xl p-8 mb-6 relative">
+              <div class="noise-overlay"></div>
+              <div class="absolute top-4 left-4 text-center">
+                <p class="text-gray-400 text-xs mb-1" style="font-family: 'Outfit', sans-serif;">Time Left</p>
+                <p id="verify-timer" class="text-2xl font-bold text-emerald-400"
+                  style="font-family: 'Space Mono', monospace;">40s</p>
+              </div>
+              <p class="text-center text-white mb-6 font-semibold text-lg" style="font-family: 'Outfit', sans-serif;">
+                Which emoji is rotated differently?</p>
+              <div class="verify-grid" id="verify-grid"></div>
+              <div id="verify-feedback" class="text-center mt-4 text-lg font-semibold feedback-message"
+                style="height: 28px;"></div>
+              <div id="verify-coin-container" class="absolute top-4 right-4 text-2xl"></div>
+            </div>
+          </div>
+
+          <!-- PUZZLE CAPTCHA Section -->
+          <div id="puzzle-section" class="captcha-section mb-6 hidden">
+            <div class="captcha-box rounded-2xl p-8 mb-6 relative">
+              <div class="noise-overlay"></div>
+              <div class="absolute top-4 left-4 text-center">
+                <p class="text-gray-400 text-xs mb-1" style="font-family: 'Outfit', sans-serif;">Time Left</p>
+                <p id="puzzle-timer" class="text-2xl font-bold text-emerald-400"
+                  style="font-family: 'Space Mono', monospace;">40s</p>
+              </div>
+              <p class="text-center text-white mb-4 font-semibold" style="font-family: 'Outfit', sans-serif;">Drag image
+                pieces to correct positions</p>
+              <div class="text-sm text-gray-400 mb-2 font-medium" style="font-family: 'Outfit', sans-serif;">Puzzle
+                Board</div>
+              <div id="puzzle-slots"
+                style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0; margin-bottom: 24px; aspect-ratio: 1/1; width: 100%; max-width: 280px; margin-left: auto; margin-right: auto; border: 4px solid #4ade80; border-radius: 8px; overflow: hidden; box-shadow: inset 0 0 20px rgba(0,0,0,0.5);">
+                <div class="puzzle-slot" data-position="0"
+                  style="border-right: 1px dashed rgba(255,255,255,0.3); border-bottom: 1px dashed rgba(255,255,255,0.3);">
+                </div>
+                <div class="puzzle-slot" data-position="1" style="border-bottom: 1px dashed rgba(255,255,255,0.3);">
+                </div>
+                <div class="puzzle-slot" data-position="2" style="border-right: 1px dashed rgba(255,255,255,0.3);">
+                </div>
+                <div class="puzzle-slot" data-position="3"></div>
+              </div>
+              <div id="puzzle-feedback" class="text-center mt-4 text-lg font-semibold feedback-message"
+                style="height: 28px;"></div>
+              <div id="puzzle-coin-container" class="absolute top-4 right-4 text-2xl"></div>
+              <div class="text-sm text-gray-400 mb-2 font-medium" style="font-family: 'Outfit', sans-serif;">Pieces
+              </div>
+              <div class="puzzle-grid" id="puzzle-grid"></div>
+            </div>
+          </div>
+
+          <!-- Shared Controls -->
+          <div class="flex gap-4 justify-center mb-8">
+            <button id="start-btn"
+              class="px-8 py-3 rounded-xl font-semibold text-lg transition-all transform hover:scale-105 active:scale-95"
+              style="font-family: 'Outfit', sans-serif; background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%); color: #0a0a0f;">▶
+              Start</button>
+            <button id="shared-skip"
+              class="px-6 py-3 bg-gray-700 hover:bg-gray-600 rounded-xl font-semibold text-gray-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              style="font-family: 'Outfit', sans-serif;" disabled>Skip →</button>
+          </div>
+
+          <!-- Progress Bar -->
+          <div class="bg-gray-800 rounded-full h-3 mb-4 overflow-hidden">
+            <div id="progress-bar" class="h-full rounded-full transition-all duration-300"
+              style="width: 0%; background: linear-gradient(90deg, #00ff88 0%, #00cc6a 100%);"></div>
+          </div>
+          <p class="text-center text-gray-500 text-sm mb-8" style="font-family: 'Outfit', sans-serif;"><span
+              id="session-count">0</span>/10 CAPTCHAs this session</p>
+
+          <!-- Info Section -->
+          <div class="bg-gray-800/30 rounded-xl p-6 border border-gray-700/50 info-section-centered">
+            <h2 class="text-lg font-semibold text-white mb-3" style="font-family: 'Outfit', sans-serif;">💡 How it works
+            </h2>
+            <ul class="space-y-2 text-gray-400 text-sm info-section-list" style="font-family: 'Outfit', sans-serif;">
+              <li class="flex items-start gap-2"><span class="text-emerald-400">✓</span> <span>Solve each CAPTCHA
+                  correctly to earn <strong class="text-emerald-400">$0.02</strong></span></li>
+              <li class="flex items-start gap-2"><span class="text-emerald-400">✓</span> <span>Try 6 different CAPTCHA
+                  types: Text, Image, Annotate, Math, Verify & Puzzle</span></li>
+              <li class="flex items-start gap-2"><span class="text-emerald-400">✓</span> <span>Complete 10 CAPTCHAs per
+                  session then watch an ad for <strong class="text-emerald-400">+$0.05</strong> bonus</span></li>
+              <li class="flex items-start gap-2"><span class="text-emerald-400">✓</span> <span>Withdraw $50+ to your
+                  account anytime</span></li>
+              <li class="flex items-start gap-2"><span class="text-emerald-400">✓</span> <span>Earn <strong
+                    class="text-emerald-400">$0.50</strong> bonus for each referral!</span></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Profile Modal -->
+  <div id="profile-modal" class="modal-backdrop">
+    <div class="modal-content profile-modal">
+      <button class="modal-close-btn" onclick="closeProfileModal()">✕</button>
+      <h2 class="text-3xl font-bold text-emerald-400 mb-6" style="font-family: 'Outfit', sans-serif;">👤 Profile</h2>
+      <div class="profile-stat">
+        <div class="profile-stat-editable">
+          <div>
+            <p class="text-gray-400 text-sm" style="font-family: 'Outfit', sans-serif;">Username</p>
+            <p id="profile-username" class="text-xl font-bold text-white" style="font-family: 'Space Mono', monospace;">
+              User</p>
+          </div>
+          <span class="edit-profile-icon" onclick="startEditUsername()">✏️</span>
+        </div>
+      </div>
+      <div id="edit-username-form" class="edit-profile-form" style="display: none;">
+        <input type="text" id="edit-username-input" placeholder="Enter new username"
+          style="font-family: 'Outfit', sans-serif;">
+        <div class="edit-profile-buttons">
+          <button class="save" onclick="saveUsername()" style="font-family: 'Outfit', sans-serif;">Save</button>
+          <button class="cancel" onclick="cancelEditUsername()"
+            style="font-family: 'Outfit', sans-serif;">Cancel</button>
+        </div>
+      </div>
+      <div class="profile-stat">
+        <p class="text-gray-400 text-sm" style="font-family: 'Outfit', sans-serif;">Email</p>
+        <p id="profile-email" class="text-xl font-bold text-white" style="font-family: 'Space Mono', monospace;">
+          user@example.com</p>
+      </div>
+      <div class="profile-stat">
+        <p class="text-gray-400 text-sm" style="font-family: 'Outfit', sans-serif;">Total CAPTCHAs Solved</p>
+        <p id="profile-solved" class="text-xl font-bold text-emerald-400" style="font-family: 'Space Mono', monospace;">
+          0</p>
+      </div>
+      <div class="profile-stat">
+        <p class="text-gray-400 text-sm" style="font-family: 'Outfit', sans-serif;">Total Earnings</p>
+        <p id="profile-earnings" class="text-xl font-bold text-emerald-400"
+          style="font-family: 'Space Mono', monospace;">$0.00</p>
+      </div>
+      <div class="profile-stat">
+        <p class="text-gray-400 text-sm" style="font-family: 'Outfit', sans-serif;">Total Withdrawn</p>
+        <p id="profile-withdrawn" class="text-xl font-bold text-emerald-400"
+          style="font-family: 'Space Mono', monospace;">$0.00</p>
+      </div>
+      <div class="profile-stat">
+        <p class="text-gray-400 text-sm" style="font-family: 'Outfit', sans-serif;">Accuracy Rate</p>
+        <p id="profile-accuracy" class="text-xl font-bold text-emerald-400"
+          style="font-family: 'Space Mono', monospace;">100%</p>
+      </div>
+      <div id="referral-section" class="referral-section" style="display: none;">
+        <h3 class="text-lg font-bold text-emerald-400 mb-4" style="font-family: 'Outfit', sans-serif;">🎯 Referral
+          Program</h3>
+        <p class="text-gray-400 text-sm mb-4" style="font-family: 'Outfit', sans-serif;">Share your referral code and
+          earn <strong>$0.50</strong> for each friend who joins!</p>
+        <p class="text-gray-400 text-xs mb-2" style="font-family: 'Outfit', sans-serif;">Your Referral Code:</p>
+        <div class="referral-code" id="referral-code">MINT-USER-12345</div>
+        <button class="copy-referral-btn" id="copy-referral-btn" style="font-family: 'Outfit', sans-serif;">📋 Copy
+          Code</button>
+        <div class="referral-stats">
+          <div class="referral-stat-item">
+            <div class="referral-stat-label" style="font-family: 'Outfit', sans-serif;">Referrals</div>
+            <div class="referral-stat-value" id="referral-count">0</div>
+          </div>
+          <div class="referral-stat-item">
+            <div class="referral-stat-label" style="font-family: 'Outfit', sans-serif;">Referral Earnings</div>
+            <div class="referral-stat-value" id="referral-earnings">$0.00</div>
+          </div>
+        </div>
+        <div class="referral-earnings">
+          <div class="referral-earnings-label" style="font-family: 'Outfit', sans-serif;">💰 Total Referral Bonus</div>
+          <div class="referral-earnings-value" id="referral-total-bonus">$0.00</div>
+        </div>
+      </div>
+      <button id="close-profile-btn" class="w-full mt-6 px-6 py-3 rounded-xl font-semibold transition-all"
+        style="font-family: 'Outfit', sans-serif; background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%); color: #0a0a0f;">Close</button>
+    </div>
+  </div>
+
+  <!-- Withdrawal History Modal -->
+  <div id="history-modal" class="modal-backdrop">
+    <div class="modal-content">
+      <button class="modal-close-btn"
+        onclick="document.getElementById('history-modal').classList.remove('active')">✕</button>
+      <h2 class="text-3xl font-bold text-emerald-400 mb-6" style="font-family: 'Outfit', sans-serif;">📋 Withdrawal
+        History</h2>
+      <div id="history-content" class="withdrawal-history-container">
+        <div class="empty-history" style="font-family: 'Outfit', sans-serif;">No withdrawals yet</div>
+      </div>
+      <button id="close-history-btn" class="w-full mt-6 px-6 py-3 rounded-xl font-semibold transition-all"
+        style="font-family: 'Outfit', sans-serif; background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%); color: #0a0a0f;">Close</button>
+    </div>
+  </div>
+
+  <!-- Withdraw Methods Modal -->
+  <div id="withdraw-modal" class="modal-backdrop">
+    <div class="modal-content" style="max-width: 500px;">
+      <button class="modal-close-btn"
+        onclick="document.getElementById('withdraw-modal').classList.remove('active')">✕</button>
+      <h2 class="text-3xl font-bold text-emerald-400 mb-4" style="font-family: 'Outfit', sans-serif;">💳 Withdraw</h2>
+      <div id="withdraw-amount-section" class="edit-profile-form mb-6">
+        <label
+          style="color: #e0e0e0; font-size: 14px; font-family: 'Outfit', sans-serif; display: block; margin-bottom: 8px;">Enter
+          amount</label>
+        <p id="withdraw-available-hint" class="text-gray-400 text-sm mb-2" style="font-family: 'Outfit', sans-serif;">
+          Available: $0.00 (min $50.00)</p>
+        <input type="number" id="withdraw-amount-input" min="50" step="0.01" placeholder="e.g. 50"
+          style="font-family: 'Outfit', sans-serif;">
+      </div>
+      <p class="text-gray-400 mb-4" style="font-family: 'Outfit', sans-serif;">Choose your preferred withdrawal method:
+      </p>
+      <div class="withdraw-methods-grid">
+        <div class="method-option" data-method="gpay">
+          <div class="method-icon">🔵</div>
+          <div class="method-name">Google Pay</div>
+        </div>
+        <div class="method-option" data-method="phonepe">
+          <div class="method-icon">📱</div>
+          <div class="method-name">PhonePe</div>
+        </div>
+        <div class="method-option" data-method="paytm">
+          <div class="method-icon">🟦</div>
+          <div class="method-name">Paytm</div>
+        </div>
+        <div class="method-option" data-method="upi">
+          <div class="method-icon">🔗</div>
+          <div class="method-name">UPI</div>
+        </div>
+        <div class="method-option" data-method="bank">
+          <div class="method-icon">🏦</div>
+          <div class="method-name">Bank Transfer</div>
+        </div>
+      </div>
+      <div id="method-details" style="display: none;">
+        <div id="name-input" class="edit-profile-form" style="display: none;">
+          <label
+            style="color: #999; font-size: 12px; font-family: 'Outfit', sans-serif; display: block; margin-bottom: 8px;">Enter
+            your Name</label>
+          <input type="text" id="withdraw-name-input" placeholder="Full name"
+            style="font-family: 'Outfit', sans-serif;">
+          <label
+            style="color: #999; font-size: 12px; font-family: 'Outfit', sans-serif; display: block; margin-bottom: 8px; margin-top: 12px;">Phone
+            / Mobile Number</label>
+          <input type="tel" id="withdraw-number-input" placeholder="e.g. 9876543210"
+            style="font-family: 'Outfit', sans-serif;">
+        </div>
+        <div id="upi-input" class="edit-profile-form" style="display: none;">
+          <label
+            style="color: #999; font-size: 12px; font-family: 'Outfit', sans-serif; display: block; margin-bottom: 8px;">Enter
+            your UPI ID</label>
+          <input type="text" id="upi-id-input" placeholder="yourname@bankname"
+            style="font-family: 'Outfit', sans-serif;">
+        </div>
+        <div id="bank-input" class="edit-profile-form" style="display: none;">
+          <label
+            style="color: #999; font-size: 12px; font-family: 'Outfit', sans-serif; display: block; margin-bottom: 8px;">Enter
+            your Account Number</label>
+          <input type="text" id="bank-account-input" placeholder="Account number"
+            style="font-family: 'Outfit', sans-serif;">
+          <label
+            style="color: #999; font-size: 12px; font-family: 'Outfit', sans-serif; display: block; margin-bottom: 8px; margin-top: 12px;">IFSC
+            Code</label>
+          <input type="text" id="bank-ifsc-input" placeholder="e.g. SBIN0001234"
+            style="font-family: 'Outfit', sans-serif;">
+        </div>
+      </div>
+      <div class="flex gap-3 mt-6">
+        <button id="confirm-withdraw-btn" class="flex-1 px-6 py-3 rounded-xl font-semibold transition-all"
+          style="font-family: 'Outfit', sans-serif; background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%); color: #0a0a0f;">Confirm
+          Withdrawal</button>
+        <button id="cancel-withdraw-btn"
+          class="flex-1 px-6 py-3 rounded-xl font-semibold bg-gray-700 hover:bg-gray-600 text-gray-300 transition-all"
+          style="font-family: 'Outfit', sans-serif;">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ads Modal -->
+  <div id="ads-modal" class="modal-backdrop">
+    <div class="modal-content">
+      <div class="text-5xl mb-4">🎉</div>
+      <h2 class="text-3xl font-bold text-emerald-400 mb-4" style="font-family: 'Outfit', sans-serif;">Great Job!</h2>
+      <p class="text-gray-300 mb-6" style="font-family: 'Outfit', sans-serif;">You've completed 10 CAPTCHAs! Watch this
+        video to earn your bonus reward.</p>
+      <div id="video-container"
+        class="bg-gray-800/50 rounded-xl p-8 mb-6 border-2 border-dashed border-gray-600 relative">
+        <p class="text-6xl mb-2">📺</p>
+        <p class="text-gray-400" style="font-family: 'Outfit', sans-serif;">Video Advertisement</p>
+        <p class="text-2xl font-bold text-emerald-400 mt-4" style="font-family: 'Space Mono', monospace;">+$0.05</p>
+        <div id="video-progress" class="mt-4 bg-gray-700 rounded-full h-2 overflow-hidden">
+          <div id="video-progress-bar"
+            style="height: 100%; background: linear-gradient(90deg, #00ff88 0%, #00cc6a 100%); width: 0%; transition: width 0.1s linear;">
+          </div>
+        </div>
+        <p id="video-time" class="text-gray-400 text-sm mt-2 text-center" style="font-family: 'Space Mono', monospace;">
+          0s / 15s</p>
+      </div>
+      <div id="ad-message" class="text-center mb-4 text-amber-400 font-semibold"
+        style="font-family: 'Outfit', sans-serif; min-height: 24px;">⏱️ Watching video... Please wait</div>
+      <button id="close-ads-btn"
+        class="w-full px-6 py-3 rounded-xl font-semibold transition-all transform disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95"
+        style="font-family: 'Outfit', sans-serif; background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%); color: #0a0a0f;"
+        disabled>Continue → (Video Playing)</button>
+    </div>
+  </div>
+
+  <!-- Daily Streak Modal -->
+  <div id="streak-modal" class="modal-backdrop">
+    <div class="modal-content text-center">
+      <div class="text-6xl mb-4 animate-bounce">🔥</div>
+      <h2 class="text-3xl font-bold text-emerald-400 mb-2" style="font-family: 'Outfit', sans-serif;">Daily Streak!</h2>
+      <p class="text-gray-300 mb-6" style="font-family: 'Outfit', sans-serif;">You're on a roll! Keep coming back to
+        earn more.</p>
+
+      <div class="bg-gray-800/50 rounded-xl p-6 mb-8 border border-gray-700">
+        <div class="flex justify-between items-center mb-4">
+          <div class="text-left">
+            <p class="text-gray-400 text-xs uppercase tracking-wider">Current Streak</p>
+            <p id="streak-days" class="text-4xl font-bold text-white font-mono">1 Day</p>
+          </div>
+          <div class="text-right">
+            <p class="text-gray-400 text-xs uppercase tracking-wider">Today's Bonus</p>
+            <p id="streak-bonus" class="text-4xl font-bold text-emerald-400 font-mono">+$0.05</p>
+          </div>
+        </div>
+        <div class="w-full bg-gray-700 h-2 rounded-full overflow-hidden">
+          <div id="streak-progress"
+            class="h-full bg-gradient-to-r from-orange-500 to-red-500 transition-all duration-1000" style="width: 14%">
+          </div>
+        </div>
+        <p class="text-xs text-gray-500 mt-2 text-right">7 Day Goal</p>
+      </div>
+
+      <button id="claim-streak-btn"
+        class="w-full px-6 py-3 rounded-xl font-semibold text-lg transition-all transform hover:scale-105 active:scale-95 shadow-lg shadow-orange-500/20"
+        style="font-family: 'Outfit', sans-serif; background: linear-gradient(135deg, #ff9f00 0%, #ff5e00 100%); color: white;">
+        Claim Bonus 💰
+      </button>
+    </div>
+  </div>
+
+  <!-- Admin Panel Modal -->
+  <div id="admin-modal" class="modal-backdrop">
+    <div class="modal-content" style="max-width: 800px; width: 95%;">
+      <button class="modal-close-btn"
+        onclick="document.getElementById('admin-modal').classList.remove('active')">✕</button>
+      <h2 class="text-3xl font-bold text-red-400 mb-6" style="font-family: 'Outfit', sans-serif;">🛠 Admin: All
+        Withdrawals</h2>
+
+      <div class="mb-6 flex gap-4 justify-center">
+        <div class="bg-gray-800/50 p-4 rounded-xl border border-gray-700 text-center flex-1">
+          <p class="text-xs text-gray-500 uppercase">Pending</p>
+          <p id="admin-stat-pending" class="text-xl font-bold text-amber-500 font-mono">0</p>
+        </div>
+        <div class="bg-gray-800/50 p-4 rounded-xl border border-gray-700 text-center flex-1">
+          <p class="text-xs text-gray-500 uppercase">Total Volume</p>
+          <p id="admin-stat-volume" class="text-xl font-bold text-emerald-500 font-mono">$0</p>
+        </div>
+      </div>
+
+      <div class="withdrawal-history-container" style="max-height: 50vh;">
+        <table class="w-full text-left bg-black/20 rounded-xl overflow-hidden">
+          <thead class="bg-gray-800/50 text-gray-400 text-xs uppercase">
+            <tr>
+              <th class="p-4">User</th>
+              <th class="p-4">Amount</th>
+              <th class="p-4">Method/Detail</th>
+              <th class="p-4">Status</th>
+              <th class="p-4">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="admin-withdrawals-list" class="text-sm">
+            <!-- Admin items here -->
+          </tbody>
+        </table>
+        <div id="admin-empty-msg" class="text-center py-8 text-gray-500 hidden"
+          style="font-family: 'Outfit', sans-serif;">No withdrawal requests found</div>
+      </div>
+
+      <button onclick="document.getElementById('admin-modal').classList.remove('active')"
+        class="w-full mt-6 px-6 py-3 rounded-xl font-semibold bg-gray-700 hover:bg-gray-600 text-gray-300 transition-all"
+        style="font-family: 'Outfit', sans-serif;">Close Admin Panel</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+
+</html>
